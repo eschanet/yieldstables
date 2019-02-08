@@ -5,8 +5,13 @@ from yieldsTable import yieldsTable
 
 import logging
 from commonHelpers.logger import logger
+from commonHelpers import process_names
+
 logger = logger.getChild("yieldsTable")
 
+import machete
+
+import os
 import pprint
 import argparse
 import traceback
@@ -14,7 +19,7 @@ import traceback
 parser = argparse.ArgumentParser(description="Print yieldstables using a configfile.")
 parser.add_argument('configfile', help='python based configfile', nargs="?")
 parser.add_argument('--debug', action='store_true', help='print debug messages')
-
+parser.add_argument('--no-raw', action='store_true', help='do not print raw yields')
 args = parser.parse_args()
 
 if args.debug:
@@ -35,15 +40,11 @@ table = yieldsTable.createYieldstable()
 
 logger.info("Got table")
 
-pprint.pprint(table)
-
-
 ########################################################
 #
-# okay, ugly stuff starts here
+# okay, ugly TeX stuff starts here
 #
 ########################################################
-
 
 header = r'''\documentclass{standalone}
 \usepackage{longtable}
@@ -56,6 +57,9 @@ header = r'''\documentclass{standalone}
 footer = r'''
 \end{document}
 '''
+table_header = ''
+table_footer = ''
+total_sm = ''
 main = ''
 
 columns = "l"
@@ -64,7 +68,7 @@ for SR in config["selections"]: columns = columns + "c"
 column_names = "Process"
 for SR in config["selections"]: column_names = column_names + " & \MyHead{1.0cm}{%s}" % SR.replace("_"," ")
 
-main = main + r'''%%
+table_header = table_header + r'''%%
 \begin{tabular}{%s}
 \toprule
 %s \\
@@ -73,45 +77,55 @@ main = main + r'''%%
 ''' % (columns,column_names)
 
 for process,d in table.iteritems():
+
     process = process.replace("_","\_")
     weighted_list = []
     error_list = []
+
     for SR,cutstring in config["selections"].iteritems():
         weighted_list.append(float(d[SR]["weighted"]))
         error_list.append(float(d[SR]["error"]))
+
     weighted_list = [r'${:.2f} \pm {:0.2f}$'.format(n,e) for n,e in zip(weighted_list,error_list)]
-    if "#" in me.get_process_name(point):
-        point_name = "$\\mathrm{%s}$"%me.get_process_name(point)
+
+    if "#" in process_names.get_process_name(process):
+        process_name = "$\\mathrm{%s}$"%process_names.get_process_name(process)
     else:
-        point_name = me.get_process_name(point)
-    main = main + "{} & ".format(point_name.replace("#","\\")) + " & ".join(weighted_list) + r'''\\
+        process_name = process_names.get_process_name(process)
+
+    if "Total SM" in process:
+        total_sm = "{} & ".format(process_name.replace("#","\\")) + " & ".join(weighted_list) + r'''\\
+\midrule
 '''
-    if point is "Total SM":
-        main = main + r'''\midrule
+    else:
+        main = main + "{} & ".format(process_name.replace("#","\\")) + " & ".join(weighted_list) + r'''\\
 '''
 
-if args.raw:
+if not args.no_raw:
     main = main + r'''\midrule
 '''
-    for point,d in results.iteritems():
-        if point is "Total SM":
+    for process,d in table.iteritems():
+        if process is "Total SM":
             continue
-        point = point.replace("_","\_")
+        process = process.replace("_","\_")
         unweighted_list = []
-        for SR,cutstring in cutsDict.iteritems():
+        for SR,cutstring in config["selections"].iteritems():
             unweighted_list.append(float(d[SR]["raw"]))
         unweighted_list = [r'{:.0f}'.format(n) for n in unweighted_list]
-        if "#" in me.get_process_name(point):
-            point_name = "$\\mathrm{%s}$"%me.get_process_name(point)
+        if "#" in process_names.get_process_name(process):
+            process_name = "$\\mathrm{%s}$"%process_names.get_process_name(process)
         else:
-            point_name = me.get_process_name(point)
-        main = main + "Unweighted {} & ".format(point_name.replace("#","\\")) + " & ".join(unweighted_list) + r'''\\
+            process_name = process_names.get_process_name(process)
+        main = main + "Unweighted {} & ".format(process_name.replace("#","\\")) + " & ".join(unweighted_list) + r'''\\
 '''
 
-main = main + r'''\bottomrule
+table_footer = table_footer + r'''\bottomrule
 \end{tabular}
 '''
 
-content = header + main + footer
-with open(texfile, 'w') as f:
+content = header + table_header + total_sm + main + table_footer + footer
+
+if not os.path.exists(config["output_path"]):
+    os.makedirs(config["output_path"])
+with open(config["output_path"]+config["output_name"]+".tex", 'w') as f:
     f.write(content)

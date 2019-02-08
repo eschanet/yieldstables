@@ -17,7 +17,9 @@ class yieldsTable:
                  selections=None,
                  processes=None,
                  weights=None,
-                 lumifactor=None):
+                 lumifactor=None,
+                 output_path=None,
+                 output_name=None):
 
         logger.info("Initializing yieldsTable")
 
@@ -27,6 +29,26 @@ class yieldsTable:
         self.lumifactor = lumifactor
         self.bkg_processes = [processname for processname,type,trees in self.processes if type == "background"]
 
+    def _createOrderedDict(self):
+
+        yields_dict = collections.OrderedDict()
+        yields_dict["Total SM"] = collections.OrderedDict()
+        for selection in self.selections:
+            yields_dict["Total SM"][selection] = {}
+            yields_dict["Total SM"][selection]["raw"] = 0
+            yields_dict["Total SM"][selection]["weighted"] = 0.0
+            yields_dict["Total SM"][selection]["error"] = 0.0
+
+        for process,type,processtrees in self.processes:
+            yields_dict[process] = collections.OrderedDict()
+            for selection in self.selections:
+                yields_dict[process][selection] = {}
+                yields_dict[process][selection]["raw"] = 0
+                yields_dict[process][selection]["weighted"] = 0.0
+                yields_dict[process][selection]["error"] = 0.0
+
+        return yields_dict
+
     def createYieldstable(self):
         """
         create the yieldsTable
@@ -35,12 +57,10 @@ class yieldsTable:
 
         logger.info("Creating yieldstable")
 
-        nested_dict = lambda: collections.defaultdict(nested_dict)
-
         open_trees = {} # index "filename_treename"
         open_files = {}
 
-        yields_dict = nested_dict()
+        yields_dict = self._createOrderedDict()
 
         for process,type,processtrees in self.processes:
 
@@ -51,10 +71,6 @@ class yieldsTable:
             error = 0
 
             for selection,cuts in self.selections.iteritems():
-                yields_dict[process][selection]["raw"] = 0
-                yields_dict[process][selection]["weighted"] = 0.0
-                yields_dict[process][selection]["error"] = 0.0
-
                 for filename, treename in processtrees:
                     index = "{}_{}".format(filename, treename)
                     if index in open_trees:
