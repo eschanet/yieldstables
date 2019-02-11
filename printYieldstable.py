@@ -9,8 +9,6 @@ from commonHelpers import process_names
 
 logger = logger.getChild("yieldsTable")
 
-import machete
-
 import os
 import pprint
 import argparse
