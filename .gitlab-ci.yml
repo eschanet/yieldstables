@@ -1,9 +1,10 @@
 stages:
-  - test
+    - test
 
 test:
-  stage: test
-  script:
+    image: rootproject/root-ubuntu16
+    stage: test
+    script:
     - echo "Running tests"
     - export PYTHONPATH="$PYTHONPATH:$PWD"
     - python -V
