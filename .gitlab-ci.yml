@@ -1,0 +1,10 @@
+stages:
+  - test
+
+test:
+  stage: test
+  script:
+    - echo "Running tests"
+    - export PYTHONPATH="$PYTHONPATH:$PWD"
+    - python -V
+    - python -m unittest discover test
