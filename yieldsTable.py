@@ -88,7 +88,8 @@ class yieldsTable:
 
                     h = ROOT.TH1F("h","",1,0.5,1.5)
                     h.Sumw2()
-                    yields_dict[process][selection]["raw"] += tree.Project("h","1","({})*({})*({})".format(self.lumifactor,self.weights,cuts))
+                    tree.Project("h","1","({})*({})*({})".format(self.lumifactor,self.weights,cuts))
+                    yields_dict[process][selection]["raw"] += tree.GetEntries(cuts)
                     yields_dict[process][selection]["weighted"] += h.Integral()
                     yields_dict[process][selection]["error"] += h.GetBinError(1)**2
                     del h
