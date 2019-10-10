@@ -18,7 +18,7 @@ class TestYields(unittest.TestCase):
         selections['test'] = "nJet30>=2 && mt>=400. && met>240. && meffInc30 > 600. &&  nLep_base==1&&nLep_signal==1 && ( (AnalysisType==1 && lep1Pt>7.) || (AnalysisType==2 && lep1Pt>6.))"
         config = {
             "processes" : [
-                ("test", "background", [("test/references/testfile.root", "test")]),
+                ["test", "background", [("test/references/testfile.root", "test")]],
             ],
             "selections" : selections,
             "lumifactor" : 139000,

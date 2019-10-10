@@ -12,6 +12,9 @@ from pprint import pprint
 
 logger = logger.getChild("yieldsTable")
 
+def _fixLength(lst, length):
+    return (lst + [None] * length)[:length]
+
 class yieldsTable:
     def __init__(self,
                  selections=None,
@@ -24,10 +27,10 @@ class yieldsTable:
         logger.info("Initializing yieldsTable")
 
         self.selections = selections
-        self.processes = processes
+        self.processes = [_fixLength(l,4) for l in processes]
         self.weights = weights
         self.lumifactor = lumifactor
-        self.bkg_processes = [processname for processname,type,trees in self.processes if type == "background"]
+        self.bkg_processes = [processname for processname,type,trees,processweight in self.processes if type == "background"]
 
     def _createOrderedDict(self):
 
@@ -39,7 +42,7 @@ class yieldsTable:
             yields_dict["Total SM"][selection]["weighted"] = 0.0
             yields_dict["Total SM"][selection]["error"] = 0.0
 
-        for process,type,processtrees in self.processes:
+        for process,type,processtrees,processweights in self.processes:
             yields_dict[process] = collections.OrderedDict()
             for selection in self.selections:
                 yields_dict[process][selection] = {}
@@ -62,7 +65,7 @@ class yieldsTable:
 
         yields_dict = self._createOrderedDict()
 
-        for process,type,processtrees in self.processes:
+        for process,type,processtrees,processweights in self.processes:
 
             logger.info("Projecting {}".format(process))
 
@@ -88,7 +91,8 @@ class yieldsTable:
 
                     h = ROOT.TH1F("h","",1,0.5,1.5)
                     h.Sumw2()
-                    tree.Project("h","1","({})*({})*({})".format(self.lumifactor,self.weights,cuts))
+                    combined_weights = "({})*({})".format(self.weights,processweights) if processweights else self.weights
+                    tree.Project("h","1","({})*({})*({})".format(self.lumifactor,combined_weights,cuts))
                     yields_dict[process][selection]["raw"] += tree.GetEntries(cuts)
                     yields_dict[process][selection]["weighted"] += h.Integral()
                     yields_dict[process][selection]["error"] += h.GetBinError(1)**2
