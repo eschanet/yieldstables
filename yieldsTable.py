@@ -93,7 +93,9 @@ class yieldsTable:
                     h.Sumw2()
                     combined_weights = "({})*({})".format(self.weights,processweights) if processweights else self.weights
                     tree.Project("h","1","({})*({})*({})".format(self.lumifactor,combined_weights,cuts))
-                    yields_dict[process][selection]["raw"] += tree.GetEntries(cuts)
+                    #the following is not 100% safe because GetEntries acts weird if one adds processweights. So if you use process-specific weights instead of cuts, pay attention!
+                    combined_cuts = "({})*({})".format(cuts,processweights) if processweights else cuts
+                    yields_dict[process][selection]["raw"] += tree.GetEntries(combined_cuts)
                     yields_dict[process][selection]["weighted"] += h.Integral()
                     yields_dict[process][selection]["error"] += h.GetBinError(1)**2
                     del h
